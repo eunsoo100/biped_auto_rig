@@ -22,7 +22,7 @@ A modular, production-ready auto-rigging tool for bipedal characters built with 
 | Area | Tools |
 |---|---|
 | Language | Python 3.10 |
-| DCC | Autodesk Maya 2022+ |
+| DCC | Autodesk Maya 2024+ |
 | Maya API | `maya.cmds`, `maya.api.OpenMaya` |
 | UI | PySide2 (Qt5) + `MayaQWidgetBaseMixin` |
 
@@ -57,19 +57,32 @@ auto_rig_system/
 
 ## How to Use
 
-1. Open `lib/skeleton_template.ma` in Maya and position the joints to match your character.
-2. Run the following in Maya's Script Editor:
+1. Download and save the master folder in Maya 2024+'s script folder or any directory you want.
+2. Open Maya file with your biped model.
+3. If your folder is not directly in Maya 2024+ script folder run the following in Maya's Script Editor, if it is, you can skip it:
 
 ```python
-import importlib
-import auto_rig_system.ui.main_window as mw
-importlib.reload(mw)
-mw.show()
+import sys
+
+# your tool path
+tool_folder_path = r'{YOUR TOOL FOLDER DIRECTORY}'
+
+if base_path not in sys.path:
+    sys.path.append(tool_folder_path)
+```
+4. Run the following in Maya's Script Editor.
+
+```python
+# import the main window of the tool
+import auto_rig_system.ui.main_window as main_window
+# Execute UI
+main_window.show_ui()
 ```
 
-3. In the UI, click **Build All** or build each module individually in order:
+5. In the UI, click **Build All** or build each module individually in order:
    `Global → Spine → Neck → Arm → Hand → Leg → Foot`
-4. Run **Setup Spaces** to finalize space switching connections.
+   
+6. Run **Setup Spaces** to finalize space switching connections.
 
 ## About
 
