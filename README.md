@@ -65,7 +65,7 @@ auto_rig_system/
 import sys
 
 # your tool path
-tool_folder_path = r'{YOUR TOOL FOLDER DIRECTORY}'
+tool_folder_path = r'YOUR TOOL FOLDER DIRECTORY'
 
 if base_path not in sys.path:
     sys.path.append(tool_folder_path)
@@ -81,7 +81,7 @@ main_window.show_ui()
 
 5. In the UI, click **Build All** or build each module individually in order:
    `Global → Spine → Neck → Arm → Hand → Leg → Foot`
-   
+
 6. Run **Setup Spaces** to finalize space switching connections.
 
 ## About
