@@ -2,7 +2,7 @@
 
 A modular, production-ready auto-rigging tool for bipedal characters built with Python and Maya's API.
 
-![Maya](https://img.shields.io/badge/Autodesk%20Maya-2022%2B-blue) ![Python](https://img.shields.io/badge/Python-3.10-green)
+![Maya](https://img.shields.io/badge/Autodesk%20Maya-2024%2B-blue) ![Python](https://img.shields.io/badge/Python-3.10-green)
 
 ---
 
