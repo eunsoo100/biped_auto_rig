@@ -1,5 +1,6 @@
 import os
 import sys
+from functools import partial
 
 # Ensure auto_rig_system root is on sys.path regardless of how this file is loaded
 _UI_DIR = os.path.dirname(os.path.abspath(__file__))   # .../ui
@@ -39,6 +40,12 @@ try:
     from core.space_manager import SpaceManager
 except ImportError as e:
     cmds.warning(f"Failed to import modules: {e}")
+
+try:
+    from modules.face_rig.jaw import FaceRig
+except ImportError as e:
+    cmds.warning(f"Failed to import face_rig.jaw: {e}")
+    FaceRig = None
 
 
 class CollapsibleSection(QtWidgets.QWidget):
@@ -80,19 +87,141 @@ class CollapsibleSection(QtWidgets.QWidget):
 class AutoRigUI(MayaQWidgetBaseMixin, QtWidgets.QMainWindow):
     def __init__(self, parent=None):
         super(AutoRigUI, self).__init__(parent)
-        self.setWindowTitle("Auto Rig System v1.0")
+        self.setWindowTitle("Auto Rig System v2.0")
         self.setMinimumSize(550, 650)
         
         self.main_widget = QtWidgets.QWidget()
         self.setCentralWidget(self.main_widget)
         self.main_layout = QtWidgets.QVBoxLayout(self.main_widget)
-        
+
+        # 최상위 탭: Body Rig / Build Corrective Joints / Face Rig
+        self.main_tabs = QtWidgets.QTabWidget()
+        # objectName으로 스코프를 한정해서 하위(Body Rig 서브) 탭에는 영향 없음
+        self.main_tabs.tabBar().setObjectName("mainTabBar")
+        self.main_tabs.setStyleSheet("""
+            QTabBar#mainTabBar::tab {
+                font-size: 10pt;
+                font-weight: regular;
+                min-width: 95px;
+                min-height: 22px;
+                padding: 2px 8px;
+            }
+            QTabBar#mainTabBar::tab:selected {
+                background: #c99c14;
+                color: #ffffff;
+                border-top-left-radius: 8px;
+                border-top-right-radius: 8px;
+                font-size: 10pt;
+                font-weight: bold;
+            }
+        """)
+        self.main_layout.addWidget(self.main_tabs)
+
+        self._setup_body_rig_tab()
+        self._setup_corrective_joints_tab()
+        self._setup_face_rig_tab()
+
+    def _setup_body_rig_tab(self):
+        """Body Rig 최상위 탭: 기존 Prep/Build/Post 서브 탭을 포함."""
+        body_rig_widget = QtWidgets.QWidget()
+        body_rig_layout = QtWidgets.QVBoxLayout(body_rig_widget)
+        body_rig_layout.setContentsMargins(0, 0, 0, 0)
+
         self.tabs = QtWidgets.QTabWidget()
-        self.main_layout.addWidget(self.tabs)
-        
+        self.tabs.setTabPosition(QtWidgets.QTabWidget.West)
+        body_rig_layout.addWidget(self.tabs)
+
         self._setup_prep_tab()
         self._setup_build_tab()
         self._setup_post_tab()
+
+        self.main_tabs.addTab(body_rig_widget, "Body Rig")
+
+    def _setup_corrective_joints_tab(self):
+        """Build Corrective Joints 최상위 탭 (placeholder)."""
+        tab = QtWidgets.QWidget()
+        layout = QtWidgets.QVBoxLayout(tab)
+        placeholder = QtWidgets.QLabel("Build Corrective Joints - Coming Soon")
+        placeholder.setAlignment(QtCore.Qt.AlignCenter)
+        placeholder.setStyleSheet("color: #808080;")
+        layout.addWidget(placeholder)
+        self.main_tabs.addTab(tab, "Build Corrective Joints")
+
+    # Jaw Rig 파트 이름 -> 기본 조인트 이름 (modules/face_rig/jaw.py의 FaceRig.PARTS / DEFAULT_JOINTS와 동일)
+    JAW_RIG_PARTS = ['jaw', 'skull', 'lip_lower_C', 'lip_upper_C',
+                     'lip_corner_L', 'lip_lower_L_sec', 'lip_upper_L_sec']
+    JAW_RIG_DEFAULT_JOINTS = {
+        'jaw': 'jaw_bnd_jnt',
+        'skull': 'skull_bnd_jnt',
+        'lip_lower_C': 'lip_lower_C_drv_jnt',
+        'lip_upper_C': 'lip_upper_C_drv_jnt',
+        'lip_corner_L': 'lip_corner_L_drv_jnt',
+        'lip_lower_L_sec': 'lip_lower_L_sec_drv_jnt',
+        'lip_upper_L_sec': 'lip_upper_L_sec_drv_jnt',
+    }
+
+    def _setup_face_rig_tab(self):
+        """Face Rig 최상위 탭: Jaw Rig 서브 섹션 포함."""
+        tab = QtWidgets.QWidget()
+        tab_layout = QtWidgets.QVBoxLayout(tab)
+
+        scroll_area = QtWidgets.QScrollArea()
+        scroll_area.setWidgetResizable(True)
+
+        content_widget = QtWidgets.QWidget()
+        layout = QtWidgets.QVBoxLayout(content_widget)
+        layout.setSpacing(20)
+
+        layout.addWidget(self._build_jaw_rig_section())
+        layout.addStretch()
+
+        scroll_area.setWidget(content_widget)
+        tab_layout.addWidget(scroll_area)
+
+        self.main_tabs.addTab(tab, "Face Rig")
+
+    def _build_jaw_rig_section(self):
+        jaw_group = CollapsibleSection("Jaw Rig")
+        jaw_layout = jaw_group.content_layout()
+
+        desc_label = QtWidgets.QLabel(
+            "<b>How to use:</b><br>"
+            "1. Select vertex/vertices in Maya for each part below.<br>"
+            "2. Click <b>'Set Joint'</b> to create/move that part's joint to the average position.<br>"
+            "3. Once all joints are set, click <b>'Build Jaw'</b>."
+        )
+        desc_label.setWordWrap(True)
+        desc_label.setStyleSheet("color: #b0b0b0; padding: 5px;")
+        jaw_layout.addWidget(desc_label)
+
+        self.jaw_fields = {}
+        for part in self.JAW_RIG_PARTS:
+            row = QtWidgets.QHBoxLayout()
+
+            label = QtWidgets.QLabel(part)
+            label.setMinimumWidth(110)
+            row.addWidget(label)
+
+            field = QtWidgets.QLineEdit(self.JAW_RIG_DEFAULT_JOINTS[part])
+            field.setReadOnly(True)
+            field.setStyleSheet("background-color: #999999; color: black;")
+            row.addWidget(field)
+
+            btn_set = QtWidgets.QPushButton("Set Joint")
+            btn_set.setMaximumWidth(90)
+            btn_set.clicked.connect(partial(self._face_rig_set_joint, field, self.JAW_RIG_DEFAULT_JOINTS[part]))
+            row.addWidget(btn_set)
+
+            jaw_layout.addLayout(row)
+            self.jaw_fields[part] = field
+
+        self.btn_build_jaw = QtWidgets.QPushButton("Build Jaw")
+        self.btn_build_jaw.setMinimumHeight(35)
+        self.btn_build_jaw.setStyleSheet("background-color: #8a5a7a; color: white; font-weight: bold;")
+        self.btn_build_jaw.clicked.connect(self._build_jaw)
+        jaw_layout.addWidget(self.btn_build_jaw)
+
+        return jaw_group
 
     # =====================================================================
     # 헬퍼 함수: 마야에서 선택한 오브젝트를 QLineEdit에 문자열로 입력
@@ -1148,6 +1277,46 @@ class AutoRigUI(MayaQWidgetBaseMixin, QtWidgets.QMainWindow):
             manager.apply_spaces(filtered_defs)
         except Exception as e:
             cmds.error(f"Failed to apply Parent Switches: {e}")
+        finally:
+            cmds.undoInfo(closeChunk=True)
+
+    # =====================================================================
+    # Face Rig 탭: Jaw Rig
+    # =====================================================================
+    def _face_rig_set_joint(self, field, joint_name):
+        """선택한 vertex들의 평균 위치에 조인트를 생성(또는 이동)하고 필드에 표시."""
+        sel = cmds.ls(selection=True, flatten=True)
+        if not sel:
+            cmds.warning("Please select vertex/vertices.")
+            return
+
+        flat = cmds.xform(sel, query=True, worldSpace=True, translation=True)
+        count = len(flat) // 3
+        pos = [sum(flat[i::3]) / count for i in range(3)]
+
+        if cmds.objExists(joint_name):
+            cmds.xform(joint_name, worldSpace=True, translation=pos)
+            cmds.warning(f"'{joint_name}' already exists — moved to new position.")
+        else:
+            cmds.select(clear=True)
+            cmds.joint(name=joint_name, position=pos)
+            cmds.setAttr(f'{joint_name}.overrideEnabled', 1)
+            cmds.setAttr(f'{joint_name}.overrideColor', 13)
+            cmds.select(clear=True)
+
+        field.setText(joint_name)
+
+    def _build_jaw(self):
+        print("\n--- Jaw Build Triggered ---")
+        if FaceRig is None:
+            cmds.error("FaceRig module failed to import. Check the script editor for details.")
+            return
+        cmds.undoInfo(openChunk=True)
+        try:
+            input_joints = {part: field.text() for part, field in self.jaw_fields.items()}
+            FaceRig(input_joints).build()
+        except Exception as e:
+            cmds.error(f"Failed to build Jaw: {e}")
         finally:
             cmds.undoInfo(closeChunk=True)
 
