@@ -67,7 +67,7 @@ import sys
 # your tool path
 tool_folder_path = r'YOUR TOOL FOLDER DIRECTORY'
 
-if base_path not in sys.path:
+if tool_folder_path not in sys.path:
     sys.path.append(tool_folder_path)
 ```
 4. Run the following in Maya's Script Editor.

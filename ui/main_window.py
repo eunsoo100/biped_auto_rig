@@ -1,7 +1,27 @@
 import os
+import sys
+
+# Ensure auto_rig_system root is on sys.path regardless of how this file is loaded
+_UI_DIR = os.path.dirname(os.path.abspath(__file__))   # .../ui
+_ROOT = os.path.dirname(_UI_DIR)                        # .../auto_rig_system
+if _ROOT not in sys.path:
+    sys.path.insert(0, _ROOT)
+
+# Purge any stale cached 'modules' or 'core' namespace packages from Maya's env
+# so our packages at _ROOT take priority over any shadowing directories.
+for _k in list(sys.modules.keys()):
+    if _k in ('modules', 'core') or _k.startswith(('modules.', 'core.')):
+        del sys.modules[_k]
+
 import maya.cmds as cmds
 from PySide2 import QtWidgets, QtCore, QtGui
 from maya.app.general.mayaMixin import MayaQWidgetBaseMixin
+
+try:
+    from core.joint_template import build_clean_skeleton
+except ImportError as e:
+    cmds.warning(f"Failed to import joint_template: {e}")
+    build_clean_skeleton = None
 
 try:
     from modules.global_ctrl import GlobalBuilder
@@ -12,7 +32,6 @@ try:
     from modules.leg import LegBuilder
     from modules.foot import FootBuilder
     from core.space_manager import SpaceManager
-    from core.joint_template import build_clean_skeleton
 except ImportError as e:
     cmds.warning(f"Failed to import modules: {e}")
 
@@ -866,6 +885,9 @@ class AutoRigUI(MayaQWidgetBaseMixin, QtWidgets.QMainWindow):
                 cmds.warning("Please select the root joint of your template skeleton.")
                 return
             template_root = selection[0]
+            if build_clean_skeleton is None:
+                cmds.error("build_clean_skeleton module failed to load. Check script editor for import errors.")
+                return
             # Get parameters from UI
             prefix = self.joint_prefix_input.text().strip()
             if not prefix:

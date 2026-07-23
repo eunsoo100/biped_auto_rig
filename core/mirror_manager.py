@@ -115,6 +115,14 @@ class MirrorManager:
                 
             if not temp_left_jnts: return None
 
+            # Freeze rotation on the temp chain so orientation lives purely in
+            # jointOrient (rotate=0). Joints like the clavicle pick up a
+            # compensating 'rotate' value when reparented into arm_jnt_grp/world
+            # during the build; mirrorJoint(mirrorBehavior=True) assumes rotate=0
+            # and silently falls back to orientation-based mirroring otherwise.
+            for t_jnt in temp_left_jnts:
+                cmds.makeIdentity(t_jnt, apply=True, translate=False, rotate=True, scale=False, normal=False)
+
             # 2. Mirror temporary chain
             mirrored_jnts = cmds.mirrorJoint(
                 temp_left_jnts[0], 

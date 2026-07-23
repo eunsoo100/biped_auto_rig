@@ -59,14 +59,14 @@ class LimbBaseBuilder(BaseBuilder):
             cmds.connectAttr(ik_fk_swt, f'{bc_scale}.blender', force=True)
 
             for ax, col in zip(['X','Y','Z'], ['R','G','B']):
-                cmds.connectAttr(f'{ik_jnt}.translate{ax}', f'{bc_trans}.color1{col}', force=True)
-                cmds.connectAttr(f'{fk_jnt}.translate{ax}', f'{bc_trans}.color2{col}', force=True)
+                cmds.connectAttr(f'{fk_jnt}.translate{ax}', f'{bc_trans}.color1{col}', force=True)
+                cmds.connectAttr(f'{ik_jnt}.translate{ax}', f'{bc_trans}.color2{col}', force=True)
                 cmds.connectAttr(f'{bc_trans}.output{col}', f'{drv_jnt}.translate{ax}', force=True)
-                cmds.connectAttr(f'{ik_jnt}.rotate{ax}', f'{bc_rot}.color1{col}', force=True)
-                cmds.connectAttr(f'{fk_jnt}.rotate{ax}', f'{bc_rot}.color2{col}', force=True)
+                cmds.connectAttr(f'{fk_jnt}.rotate{ax}', f'{bc_rot}.color1{col}', force=True)
+                cmds.connectAttr(f'{ik_jnt}.rotate{ax}', f'{bc_rot}.color2{col}', force=True)
                 cmds.connectAttr(f'{bc_rot}.output{col}', f'{drv_jnt}.rotate{ax}', force=True)
-                cmds.connectAttr(f'{ik_jnt}.scale{ax}', f'{bc_scale}.color1{col}', force=True)
-                cmds.connectAttr(f'{fk_jnt}.scale{ax}', f'{bc_scale}.color2{col}', force=True)
+                cmds.connectAttr(f'{fk_jnt}.scale{ax}', f'{bc_scale}.color1{col}', force=True)
+                cmds.connectAttr(f'{ik_jnt}.scale{ax}', f'{bc_scale}.color2{col}', force=True)
                 cmds.connectAttr(f'{bc_scale}.output{col}', f'{drv_jnt}.scale{ax}', force=True)
 
     def setup_ikfk_visibility(self, ik_grps, fk_grps, setting_ctrl):
@@ -74,11 +74,11 @@ class LimbBaseBuilder(BaseBuilder):
         if not isinstance(ik_grps, list): ik_grps = [ik_grps]
         if not isinstance(fk_grps, list): fk_grps = [fk_grps]
         for ik_grp in ik_grps:
-            cmds.setDrivenKeyframe(ik_grp, at='visibility', v=0, cd=driver, dv=0)
-            cmds.setDrivenKeyframe(ik_grp, at='visibility', v=1, cd=driver, dv=1)
+            cmds.setDrivenKeyframe(ik_grp, at='visibility', v=1, cd=driver, dv=0)
+            cmds.setDrivenKeyframe(ik_grp, at='visibility', v=0, cd=driver, dv=1)
         for fk_grp in fk_grps:
-            cmds.setDrivenKeyframe(fk_grp, at='visibility', v=1, cd=driver, dv=0)
-            cmds.setDrivenKeyframe(fk_grp, at='visibility', v=0, cd=driver, dv=1)
+            cmds.setDrivenKeyframe(fk_grp, at='visibility', v=0, cd=driver, dv=0)
+            cmds.setDrivenKeyframe(fk_grp, at='visibility', v=1, cd=driver, dv=1)
 
     def create_sqush_nodes(self, name):
         power = cmds.createNode('multiplyDivide', name=f'{name}_pow')
@@ -294,10 +294,10 @@ class LimbBaseBuilder(BaseBuilder):
         cmds.matchTransform(low_twist, lower_jnt, pos=True, rot=False)
         cmds.parent(low_twist, lower_jnt)
 
-        # Use "objectrotation" with the lower joint as worldUpObject
+        # Use "object" with the lower joint as worldUpObject
         # to prevent rotation flipping on the mirrored side.
         cmds.aimConstraint(mid_jnt, low_twist, mo=True, weight=1, aimVector=inv_lo_aim, upVector=lo_up, 
-                           worldUpType="objectrotation", worldUpVector=lo_up, worldUpObject=lower_jnt)
+                           worldUpType="object", worldUpVector=lo_up, worldUpObject=lower_jnt)
         
         return [up_twist, low_twist]
 
