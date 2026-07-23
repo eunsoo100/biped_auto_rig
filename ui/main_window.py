@@ -14,7 +14,12 @@ for _k in list(sys.modules.keys()):
         del sys.modules[_k]
 
 import maya.cmds as cmds
-from PySide2 import QtWidgets, QtCore, QtGui
+try:
+    from PySide6 import QtWidgets, QtCore, QtGui
+    from shiboken6 import wrapInstance
+except ImportError:
+    from PySide2 import QtWidgets, QtCore, QtGui
+    from shiboken2 import wrapInstance
 from maya.app.general.mayaMixin import MayaQWidgetBaseMixin
 
 try:
